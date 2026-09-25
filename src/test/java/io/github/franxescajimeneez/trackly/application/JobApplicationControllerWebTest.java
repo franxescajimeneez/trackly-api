@@ -1,9 +1,14 @@
 package io.github.franxescajimeneez.trackly.application;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -53,11 +58,12 @@ class JobApplicationControllerWebTest {
 
     @Test
     void shouldRetrieveNewlyCreatedApplicationByItsGeneratedId() throws Exception {
-        MockMvc mockMvcWithRealService = MockMvcBuilders
-                .standaloneSetup(new JobApplicationController(new JobApplicationService()))
-                .build();
+        JobApplication createdApplication =
+                new JobApplication(1L, "Empresa Test", "Java Junior", "APPLIED");
+        when(service.create(any(JobApplication.class))).thenReturn(createdApplication);
+        when(service.findById(1L)).thenReturn(Optional.of(createdApplication));
 
-        mockMvcWithRealService.perform(post("/api/applications")
+        mockMvc.perform(post("/api/applications")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -70,7 +76,7 @@ class JobApplicationControllerWebTest {
                 .andExpect(header().string("Location", "/api/applications/1"))
                 .andExpect(jsonPath("$.id").value(1));
 
-        mockMvcWithRealService.perform(get("/api/applications/1"))
+        mockMvc.perform(get("/api/applications/1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1))
                 .andExpect(jsonPath("$.company").value("Empresa Test"));
@@ -118,6 +124,78 @@ class JobApplicationControllerWebTest {
                   "status": "APPLIED"
                 }
                 """);
+    }
+
+    @Test
+    void shouldUpdateExistingApplication() throws Exception {
+        JobApplication updatedApplication =
+                new JobApplication(1L, "Empresa Actualizada", "Java Senior", "INTERVIEW");
+        when(service.update(eq(1L), any(JobApplication.class)))
+                .thenReturn(Optional.of(updatedApplication));
+
+        mockMvc.perform(put("/api/applications/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "id": 99,
+                                  "company": "Empresa Actualizada",
+                                  "position": "Java Senior",
+                                  "status": "INTERVIEW"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.company").value("Empresa Actualizada"))
+                .andExpect(jsonPath("$.position").value("Java Senior"))
+                .andExpect(jsonPath("$.status").value("INTERVIEW"));
+    }
+
+    @Test
+    void shouldReturnNotFoundWhenUpdatingMissingApplication() throws Exception {
+        when(service.update(eq(99L), any(JobApplication.class)))
+                .thenReturn(Optional.empty());
+
+        mockMvc.perform(put("/api/applications/99")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "company": "Empresa Actualizada",
+                                  "position": "Java Senior",
+                                  "status": "INTERVIEW"
+                                }
+                                """))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void shouldReturnBadRequestWhenUpdatingWithInvalidBody() throws Exception {
+        mockMvc.perform(put("/api/applications/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "company": "   ",
+                                  "position": "Java Senior",
+                                  "status": "INTERVIEW"
+                                }
+                                """))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void shouldDeleteExistingApplication() throws Exception {
+        when(service.deleteById(1L)).thenReturn(true);
+
+        mockMvc.perform(delete("/api/applications/1"))
+                .andExpect(status().isNoContent())
+                .andExpect(content().string(""));
+    }
+
+    @Test
+    void shouldReturnNotFoundWhenDeletingMissingApplication() throws Exception {
+        when(service.deleteById(99L)).thenReturn(false);
+
+        mockMvc.perform(delete("/api/applications/99"))
+                .andExpect(status().isNotFound());
     }
 
     private void assertInvalidApplication(String requestBody) throws Exception {

@@ -1,6 +1,5 @@
 package io.github.franxescajimeneez.trackly.application;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -9,26 +8,39 @@ import org.springframework.stereotype.Service;
 @Service
 public class JobApplicationService {
 
-    private final List<JobApplication> applications = new ArrayList<>();
-    private long nextId = 1L;
+    private final JobApplicationRepository repository;
+
+    public JobApplicationService(JobApplicationRepository repository) {
+        this.repository = repository;
+    }
 
     public List<JobApplication> findAll() {
-        return applications;
+        return repository.findAll();
     }
 
     public Optional<JobApplication> findById(Long id) {
-        return applications.stream()
-                .filter(application -> id.equals(application.getId()))
-                .findFirst();
+        return repository.findById(id);
     }
 
     public JobApplication create(JobApplication application) {
-        JobApplication createdApplication = new JobApplication(
-                nextId++,
-                application.getCompany(),
-                application.getPosition(),
-                application.getStatus());
-        applications.add(createdApplication);
-        return createdApplication;
+        return repository.save(application);
+    }
+
+    public Optional<JobApplication> update(Long id, JobApplication application) {
+        return repository.findById(id)
+                .map(existingApplication -> repository.save(new JobApplication(
+                        id,
+                        application.getCompany(),
+                        application.getPosition(),
+                        application.getStatus())));
+    }
+
+    public boolean deleteById(Long id) {
+        if (!repository.existsById(id)) {
+            return false;
+        }
+
+        repository.deleteById(id);
+        return true;
     }
 }
