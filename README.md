@@ -1,6 +1,12 @@
 # Trackly API
 
-Trackly API is a REST API for managing and tracking job applications. It provides persistent CRUD operations backed by PostgreSQL and keeps HTTP, business, and persistence responsibilities in separate layers.
+![Trackly API — Java and Spring Boot backend](docs/trackly-api-banner.png)
+
+A **REST API for tracking job applications**, built with **Java 25 and Spring Boot 4.1.1**. It implements persistent **CRUD** operations through a layered **Controller → Service → Repository** architecture.
+
+- **Persistence:** Spring Data JPA / Hibernate with PostgreSQL.
+- **Validation:** Jakarta Bean Validation (`@NotBlank` and `@Valid`).
+- **Testing:** JUnit 5, Mockito and MockMvc for unit, HTTP and Spring context tests.
 
 ## Current features
 
